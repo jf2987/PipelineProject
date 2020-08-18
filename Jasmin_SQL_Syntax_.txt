@@ -1,0 +1,115 @@
+-- Jasmin Fernandez Castillo (they, them, theirs), Intermediate GenData, August 2020.
+
+
+-- All this code would be set to be delivered to me as output at 4 am every day. Just to ensure no additional rows have been added to the data set.
+
+-- the belwow code creates a table from the Georgia Absentee data set-- it subsets based on whether they have a 
+-- populated ballot_status and status_reason value.
+
+CREATE TABLE jfernandez.Subset_Ballot_Reason 
+    (  voter_registration_num int,
+     ballot_status varchar,
+     status_reason varchar
+    );
+
+
+INSERT INTO jfernandez.Subset_Ballot_Reason
+(
+voter_registration_num,
+ballot_status,
+status_reason)
+
+SELECT 
+	voter_registration_num, ballot_status, status_reason
+    FROM ga_absentee_records GA
+    where ballot_status in ('R','A','S', 'C') and status_reason IS NOT NULL;
+
+
+--- count where condition above met
+SELECT 
+	status_reason,
+    COUNT (*)
+    FROM ga_absentee_records GA
+    where ballot_status in ('R','A','S', 'C') and status_reason IS NOT NULL
+    Group by 1;
+
+
+-- creating table with one column
+TRUNCATE table jfernandez.Subset_Ballot_Reason3;
+CREATE TABLE if not exists jfernandez.Subset_Ballot_Reason3
+    (  voter_registration_num int,
+     ballot_status varchar,
+     status_reason varchar
+    );
+
+
+INSERT INTO jfernandez.Subset_Ballot_Reason3
+(
+voter_registration_num,
+ballot_status,
+status_reason)
+
+SELECT 
+	voter_registration_num, ballot_status, status_reason
+    FROM ga_absentee_records GA
+    where ballot_status in ('R','A','S', 'C') and status_reason IS NOT NULL;
+
+
+--- creating table with 3 columns 
+
+
+CREATE TABLE jfernandez.SubsetRejectedBallots 
+    (  Dem_Rejected_Ballot int,
+Repub_Rejected_Ballot int,
+Non_Partisan_Rejected_Ballot int,
+Does_Not_Satisfy_Both_Conditions int);
+
+INSERT INTO jfernandez.SubsetRejectedBallots
+(
+Dem_Rejected_Ballot ,
+Repub_Rejected_Ballot,
+Non_Partisan_Rejected_Ballot,
+Does_Not_Satisfy_Both_Conditions
+)
+
+SELECT
+	count(CASE WHEN party = 'DEMOCRAT' AND challengedprovisional = 'YES' THEN 1 else null end) as Dem_Rejected_Ballot   -- For each item - WHEN ----[criteria] THEN [label].
+	,count(CASE WHEN  party = 'REPUBLICAN' AND challengedprovisional = 'YES' THEN 1 else null end) as Repub_Rejected_Ballot
+		, count(CASE WHEN party = 'NON-PARTISAN' AND challengedprovisional = 'YES' THEN 1 else null end) as Non_Partisan_Rejected_Ballot
+		, count(*) as total_ballots
+FROM
+gendata.ga_absentee;
+
+
+---deleting my first output table with 3 columns
+DROP Table jfernandez.SubsetRejectedBallots
+
+
+---THIS CODE CHUNK gives me a count of the individuals whose provisionals were either challenged or not
+
+SELECT 
+	Case
+  WHEN challengedprovisional = 'YES' THEN 'Vote Denied'
+ 	WHEN challengedprovisional = 'NO' THEN 'Vote Accepted'
+  ELSE Null
+  END
+  AS Voting_Status
+	, COUNT(*) AS total_rows
+FROM ga_absentee_records GA
+GROUP BY 1;
+
+
+
+---This code was used to arrange the data in a way to allow for a Chi Square analysis---
+
+SELECT voter_registration_num, CASE WHEN challengedprovisional = 'YES' THEN 1
+WHEN challengedprovisional= 'NO' THEN '2' ELSE NULL 
+END as ballotstatus, 
+CASE WHEN party = 'DEMOCRAT' then 'D' when party = 'REPUBLICAN' then 'R' else null end as partyname 
+FROM public.ga_absentee_records; 
+
+-----
+
+
+
+
